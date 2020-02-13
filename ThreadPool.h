@@ -1,24 +1,29 @@
+#ifndef THREAD_POOL_H
+#define THREAD_POOL_H
+
 #include <vector>
-#include <thread>
 #include <queue>
+#include <memory>
+#include <thread>
 #include <mutex>
 #include <condition_variable>
-
-// using namespace std;
+#include <future>
+#include <functional>
+#include <stdexcept>
 
 class ThreadPool {
 public:
     ThreadPool(size_t);
-    ~ThreadPool();
     template<class F, class... Args>
     auto enqueue(F&& f, Args&&... args)
     -> std::future<typename std::result_of<F(Args...)>::type>;
-
+    ~ThreadPool();
 private:
-     // keep track of threads so we can add to or join more
-    std::vector<std::thread> workers;
-    // The task queue
-    std::queue<std::function<void()>> tasks;
+    // need to keep track of threads so we can join them
+    std::vector< std::thread > workers;
+    // the task queue
+    std::queue< std::function<void()> > tasks;
+
     // synchronization
     std::mutex queue_mutex;
     std::condition_variable condition;
@@ -27,7 +32,7 @@ private:
 
 // the constructor just launches some amount of workers
 inline ThreadPool::ThreadPool(size_t threads)
-    : stop(false)
+    :   stop(false)
 {
     for(size_t i = 0;i<threads;++i)
         workers.emplace_back(
@@ -89,3 +94,5 @@ inline ThreadPool::~ThreadPool()
     for(std::thread &worker: workers)
         worker.join();
 }
+
+#endif
